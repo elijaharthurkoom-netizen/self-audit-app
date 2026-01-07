@@ -87,9 +87,7 @@
     const code = input.value.trim();
     if (!code) return;
 
-    const res = await fetch(
-      "https://YOURPROJECTID.supabase.co/functions/v1/verify-access",
-      {
+    const res = await fetch("https://tzjmzlvkynkhagkzkpjd.supabase.co/functions/v1/verify-access", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code }),
