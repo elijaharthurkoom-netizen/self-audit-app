@@ -62,36 +62,48 @@
 </head>
 <body>
 
-  <div class="container">
-    <h1>Self Audit Access</h1>
-    <p>This space is reserved.</p>
+<div class="gate">
+  <p class="gate-copy">
+    Enter your access code to begin a self audit session.
+  </p>
 
-    <input id="codeInput" placeholder="Access code" />
-    <button onclick="checkCode()">Enter</button>
+  <input
+    id="accessCode"
+    type="text"
+    inputmode="numeric"
+    placeholder="Access code"
+  />
 
-    <div id="error" class="error"></div>
-  </div>
+  <button id="enterBtn">Enter</button>
 
-  <script>
-    async function checkCode() {
-      const code = document.getElementById('codeInput').value.trim();
-      if (!code) return;
+  <p id="error" class="error"></p>
+</div>
+<script>
+  const btn = document.getElementById("enterBtn");
+  const input = document.getElementById("accessCode");
+  const error = document.getElementById("error");
 
-      const res = await fetch('SUPABASE_FUNCTION_URL', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
-      });
+  btn.addEventListener("click", async () => {
+    const code = input.value.trim();
+    if (!code) return;
 
-      const data = await res.json();
-
-      if (data.valid) {
-        window.location.href = '/session.html';
-      } else {
-        document.getElementById('error').innerText = "That code isn’t valid.";
+    const res = await fetch(
+      "https://YOURPROJECTID.supabase.co/functions/v1/verify-access",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
       }
-    }
-  </script>
+    );
 
+    const data = await res.json();
+
+    if (data.valid) {
+      window.location.href = "session.html";
+    } else {
+      error.textContent = "That code isn’t valid.";
+    }
+  });
+                              </script>
 </body>
 </html>
