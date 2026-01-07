@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Self Audit</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Manrope:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Manrope', sans-serif;
+      background: #ffffff;
+      color: #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 420px;
+      text-align: center;
+    }
+
+    h1 {
+      font-family: 'DM Sans', sans-serif;
+      color: #F24C00;
+      font-weight: 500;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      margin-top: 20px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+    }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      border-radius: 12px;
+      border: none;
+      background: #F24C00;
+      color: #fff;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .error {
+      margin-top: 14px;
+      color: #666;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Self Audit Access</h1>
+    <p>This space is reserved.</p>
+
+    <input id="codeInput" placeholder="Access code" />
+    <button onclick="checkCode()">Enter</button>
+
+    <div id="error" class="error"></div>
+  </div>
+
+  <script>
+    async function checkCode() {
+      const code = document.getElementById('codeInput').value.trim();
+      if (!code) return;
+
+      const res = await fetch('SUPABASE_FUNCTION_URL', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+
+      const data = await res.json();
+
+      if (data.valid) {
+        window.location.href = '/session.html';
+      } else {
+        document.getElementById('error').innerText = "That code isn’t valid.";
+      }
+    }
+  </script>
+
+</body>
+</html>
