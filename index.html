@@ -62,46 +62,36 @@
 </head>
 <body>
 
-<div class="gate">
-  <p class="gate-copy">
-    Enter your access code to begin a self audit session.
-  </p>
+  <div class="container">
+    <h1>Self Audit Access</h1>
+    <p>This space is reserved.</p>
 
-  <input
-    id="accessCode"
-    type="text"
-    inputmode="numeric"
-    placeholder="Access code"
-  />
+    <input id="codeInput" placeholder="Access code" />
+    <button onclick="checkCode()">Enter</button>
 
-  <button id="enterBtn">Enter</button>
+    <div id="error" class="error"></div>
+  </div>
 
-  <p id="error" class="error"></p>
-</div>
-<script>
-  const btn = document.getElementById("enterBtn");
-  const input = document.getElementById("accessCode");
-  const error = document.getElementById("error");
+  <script>
+    async function checkCode() {
+      const code = document.getElementById('codeInput').value.trim();
+      if (!code) return;
 
-  btn.addEventListener("click", async () => {
-    const code = input.value.trim();
-    if (!code) return;
+      const res = await fetch('SUPABASE_FUNCTION_URL', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
 
-    const res = await fetch("https://tzjmzlvkynkhagkzkpjd.supabase.co/functions/v1/verify-access", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
+      const data = await res.json();
+
+      if (data.valid) {
+        window.location.href = '/session.html';
+      } else {
+        document.getElementById('error').innerText = "That code isn’t valid.";
       }
-    );
-
-    const data = await res.json();
-
-    if (data.valid) {
-      window.location.href = "session.html";
-    } else {
-      error.textContent = "That code isn’t valid.";
     }
-  });
-                              </script>
+  </script>
+
 </body>
 </html>
