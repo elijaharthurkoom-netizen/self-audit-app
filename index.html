@@ -1,97 +1,181 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Self Audit</title>
-
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Manrope:wght@400;500&display=swap" rel="stylesheet">
-
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Manrope', sans-serif;
-      background: #ffffff;
-      color: #111;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-
-    .container {
-      width: 90%;
-      max-width: 420px;
-      text-align: center;
-    }
-
-    h1 {
-      font-family: 'DM Sans', sans-serif;
-      color: #F24C00;
-      font-weight: 500;
-    }
-
-    input {
-      width: 100%;
-      padding: 14px;
-      font-size: 16px;
-      margin-top: 20px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-    }
-
-    button {
-      margin-top: 20px;
-      width: 100%;
-      padding: 14px;
-      font-size: 16px;
-      border-radius: 12px;
-      border: none;
-      background: #F24C00;
-      color: #fff;
-      font-family: 'DM Sans', sans-serif;
-    }
-
-    .error {
-      margin-top: 14px;
-      color: #666;
-      font-size: 14px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Self Audit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Italianno&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --brand: #F24C00; --soft-black: #1A1A1A; }
+        body { font-family: 'Manrope', sans-serif; background: white; color: var(--soft-black); -webkit-tap-highlight-color: transparent; }
+        .dm-sans { font-family: 'DM Sans', sans-serif; }
+        .fade-in { animation: fadeIn 0.8s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .pulse-glow { width: 10px; height: 10px; border-radius: 50%; background: var(--brand); animation: pulse 4s infinite; }
+        @keyframes pulse { 0% { transform: scale(0.95); opacity: 0.8; } 70% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
+        .focus-target { transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        body.is-typing .focus-target { opacity: 0.05 !important; pointer-events: none; }
+        .question-text { color: var(--brand); transition: opacity 5s ease; }
+        .question-faded { opacity: 0.15; }
+        textarea { border: none; outline: none; resize: none; width: 100%; background: transparent; caret-color: var(--brand); }
+        button:disabled { opacity: 0; pointer-events: none; }
+    </style>
 </head>
-<body>
+<body class="antialiased overflow-hidden">
+    <div id="app-wrapper" class="h-screen w-full flex flex-col items-center justify-center px-10 relative">
+        <!-- Screen 1: Access -->
+        <div id="screen-access" class="fade-in w-full max-w-[300px] space-y-12">
+            <div class="space-y-2 text-center">
+                <h1 class="dm-sans text-[#F24C00] text-xl font-bold tracking-tight">Self Audit Access</h1>
+                <p class="text-gray-400 font-light text-xs">This space is reserved.</p>
+            </div>
+            <div class="space-y-6">
+                <input type="text" id="access-input" placeholder="Access code" class="w-full border-b border-gray-100 py-3 focus:border-[#F24C00] outline-none dm-sans text-lg text-center tracking-widest uppercase">
+                <p id="access-error" class="text-[10px] text-center text-[#F24C00] tracking-widest uppercase hidden">Invalid code</p>
+                <button id="access-btn" onclick="handleAccess()" class="w-full bg-[#F24C00] text-white py-4 rounded-full font-bold text-[10px] tracking-[0.2em] uppercase">Enter</button>
+            </div>
+        </div>
 
-  <div class="container">
-    <h1>Self Audit Access</h1>
-    <p>This space is reserved.</p>
+        <!-- Screen 2: Entry -->
+        <div id="screen-entry" class="hidden fade-in text-center space-y-12">
+            <p class="text-lg leading-relaxed text-gray-400 font-light">A self audit session.<br>One question at a time.<br>Nothing is saved.</p>
+            <button onclick="startAudit()" class="text-[#F24C00] dm-sans font-bold tracking-widest uppercase border-b border-[#F24C00] pb-1 text-[10px]">Begin</button>
+        </div>
 
-    <input id="codeInput" placeholder="Access code" />
-    <button onclick="checkCode()">Enter</button>
+        <!-- Screen 3: Session -->
+        <div id="screen-session" class="hidden w-full max-w-[500px] fade-in flex flex-col items-center">
+            <div class="w-full space-y-8">
+                <div class="flex items-start gap-4">
+                    <div class="pt-3 focus-target"><div id="pulse-point" class="pulse-glow" onclick="showHelper()" onmousedown="hHold(true)" onmouseup="hHold(false)" ontouchstart="hHold(true)" ontouchend="hHold(false)"></div></div>
+                    <div class="flex-1 space-y-6">
+                        <div class="space-y-2 min-h-[100px]">
+                            <h2 id="q-label" class="dm-sans text-xl font-medium leading-snug question-text focus-target"></h2>
+                            <p id="h-text" class="text-gray-300 text-[10px] font-medium opacity-0 transition-opacity focus-target"></p>
+                        </div>
+                        <textarea id="audit-input" placeholder="Start typing..." class="text-lg font-light leading-relaxed h-64" oninput="vInput()"></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end"><button id="next-btn" onclick="next()" disabled><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F24C00" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></button></div>
+            </div>
+            <div id="foot" class="absolute bottom-10 w-full text-center px-10 focus-target"><p class="text-[8px] text-gray-200 tracking-widest uppercase">In-session use only. Discarded after.</p></div>
+        </div>
 
-    <div id="error" class="error"></div>
-  </div>
+        <!-- Screen 4: Processing -->
+        <div id="screen-proc" class="hidden flex flex-col items-center gap-6"><div class="w-8 h-8 border border-gray-100 border-t-[#F24C00] rounded-full animate-spin"></div><p class="text-gray-300 text-[9px] tracking-widest uppercase">Distilling</p></div>
 
-  <script>
-    async function checkCode() {
-      const code = document.getElementById('codeInput').value.trim();
-      if (!code) return;
+        <!-- Screen 5: Final -->
+        <div id="screen-final" class="hidden fade-in text-center space-y-10">
+            <h1 class="dm-sans text-[#F24C00] text-2xl font-bold tracking-tight">Complete</h1>
+            <button id="dl-btn" onclick="dl()" class="w-full py-4 px-10 rounded-xl border border-[#F24C00] text-[#F24C00] font-bold text-[10px] tracking-widest uppercase">Download summary</button>
+            <button onclick="location.reload()" class="block w-full text-gray-300 text-[9px] font-bold tracking-widest uppercase">Restart</button>
+        </div>
+    </div>
 
-      const res = await fetch('SUPABASE_FUNCTION_URL', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
-      });
+    <script>
+        // PASTE YOUR SUPABASE INFO HERE
+        const SUPABASE_URL = "https://rjtftfnmlmhttqmvofuk.supabase.co"; 
+        const SUPABASE_KEY = "sb_publishable__Z-GhN9Ft64kc0q823Ah9Q_MKTeRUOy"; 
+        const apiKey = ""; // Gemini API Key
 
-      const data = await res.json();
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      if (data.valid) {
-        window.location.href = '/session.html';
-      } else {
-        document.getElementById('error').innerText = "That code isn’t valid.";
-      }
-    }
-  </script>
+        let step = 0; let ans = []; let skip = false; let hTimer; let fTimer;
+        const QS = [
+            {q: "What feels most present for you right now?", h: "Notice the first thing that surfaces."},
+            {q: "What has been quietly asking for your attention lately?", h: "Look toward the edges."},
+            {q: "What are you currently avoiding thinking about?", h: "Honesty is the only requirement."},
+            {q: "When you sit with that, what emotion becomes most noticeable?", h: "Identify the feeling, not the logic."},
+            {q: "Where do you feel this most—in your body, your thoughts, or your mood?", h: "Locate the resonance."},
+            {q: "Why does this matter to you more than you admit?", h: "Uncover the hidden value."},
+            {q: "What feels unclear, unfinished, or unresolved here?", h: "Describe the gap."},
+            {q: "Is this familiar from another time in your life?", h: "Look for the pattern."},
+            {q: "What part of this is actually within your control right now?", h: "Define the sphere of action."},
+            {q: "What part is not—and needs to be released or accepted?", h: "Acknowledge the weight you cannot carry."},
+            {q: "What would honesty look like here, even if nothing changes?", h: "The truth as it stands."},
+            {q: "What do you want to take forward from this self audit?", h: "Choose one small, clear thread."}
+        ];
 
+        async function handleAccess() {
+            const code = document.getElementById('access-input').value.trim();
+            const btn = document.getElementById('access-btn');
+            btn.textContent = "Verifying...";
+            
+            try {
+                const { data, error } = await _supabase
+                    .from('access_codes')
+                    .select('*')
+                    .eq('code', code)
+                    .single();
+
+                if (data) {
+                    hideAll(); show('screen-entry');
+                } else {
+                    show('access-error');
+                    btn.textContent = "Enter";
+                }
+            } catch (e) {
+                show('access-error');
+                btn.textContent = "Enter";
+            }
+        }
+
+        function startAudit() { hideAll(); show('screen-session'); render(); }
+        function render() {
+            const d = QS[step];
+            document.getElementById('q-label').textContent = d.q;
+            document.getElementById('q-label').classList.remove('question-faded');
+            document.getElementById('h-text').textContent = d.h;
+            document.getElementById('h-text').style.opacity = "0";
+            document.getElementById('audit-input').value = "";
+            document.body.classList.remove('is-typing');
+            vInput();
+            clearTimeout(fTimer);
+            fTimer = setTimeout(() => document.getElementById('q-label').classList.add('question-faded'), 5000);
+        }
+        function vInput() {
+            const val = document.getElementById('audit-input').value;
+            const btn = document.getElementById('next-btn');
+            if (val.length > 0) {
+                document.body.classList.add('is-typing');
+                btn.disabled = false; btn.style.opacity = "1";
+            } else {
+                document.body.classList.remove('is-typing');
+                btn.disabled = true; btn.style.opacity = "0";
+            }
+        }
+        function showHelper() { const h = document.getElementById('h-text'); h.style.opacity = h.style.opacity === "1" ? "0" : "1"; }
+        function hHold(isH) { if(skip) return; if(isH) hTimer = setTimeout(() => { if(confirm("Skip?")){skip=true; document.getElementById('audit-input').value="[Skipped]"; next();} }, 3000); else clearTimeout(hTimer); }
+        async function next() {
+            ans.push({q: QS[step].q, a: document.getElementById('audit-input').value});
+            if (step < 11) { step++; render(); } else { await gen(); }
+        }
+        async function gen() {
+            hideAll(); show('screen-proc');
+            const p = "Architect of Purpose: Mirror only user language. No advice. Max 250 words. Typography style: Spacious, Italianno headings, Manrope body. Sections: Summary, Themes, Unresolved, Closing Reflection.";
+            const t = ans.map(r => `Q: ${r.q}\nA: ${r.a}`).join('\n\n');
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ contents: [{ parts: [{ text: t }] }], systemInstruction: { parts: [{ text: p }] } })
+                });
+                const d = await res.json();
+                window.f = d.candidates[0].content.parts[0].text;
+                hideAll(); show('screen-final');
+            } catch (e) { window.f = t; hideAll(); show('screen-final'); }
+        }
+        function dl() {
+            const b = new Blob([window.f], {type: 'text/plain'});
+            const u = URL.createObjectURL(b);
+            const a = document.createElement('a'); a.href = u; a.download = `Self_Audit.txt`; a.click();
+            document.getElementById('dl-btn').textContent = "Downloaded";
+        }
+        function show(id) { document.getElementById(id).classList.remove('hidden'); }
+        function hideAll() { ['screen-access', 'screen-entry', 'screen-session', 'screen-proc', 'screen-final'].forEach(id => document.getElementById(id).classList.add('hidden')); }
+    </script>
 </body>
 </html>
+
